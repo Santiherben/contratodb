@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ContratoDB</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">UTU Canelones · Base de Datos</p>
+          <h1>ContratoDB</h1>
+          <p class="teacher-line">Profesor Santiago Hernández</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="session-box" id="sessionBox"></div>
+          <label class="field compact" id="studentPickerWrap">
+            <span>Ver estudiante</span>
+            <select id="studentSelect"></select>
+          </label>
+          <button id="logoutBtn" type="button">Salir</button>
+        </div>
+      </header>
+
+      <section class="auth-panel" id="setupPanel" hidden>
+        <h2>Conectar Supabase</h2>
+        <p>Configurá `SUPABASE_URL` y `SUPABASE_ANON_KEY` en `app.js` para usar login con email.</p>
+      </section>
+
+      <section class="auth-panel" id="authPanel">
+        <div>
+          <p class="eyebrow">Acceso</p>
+          <h2>Ingresar a ContratoDB</h2>
+          <p>Usá email y contraseña. Los estudiantes solo ven su propio proceso.</p>
+        </div>
+        <form id="authForm" class="auth-form">
+          <label class="field">
+            <span>Email</span>
+            <input id="authEmail" type="email" autocomplete="email" required />
+          </label>
+          <label class="field">
+            <span>Contraseña</span>
+            <input id="authPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <label class="field" id="authNameWrap">
+            <span>Nombre completo</span>
+            <input id="authName" type="text" autocomplete="name" />
+          </label>
+          <div class="auth-actions">
+            <button class="primary" id="loginBtn" type="submit">Ingresar</button>
+            <button id="signupBtn" type="button">Crear cuenta estudiante</button>
+          </div>
+        </form>
+        <p id="authMessage" class="message"></p>
+      </section>
+
+      <main id="appMain" hidden>
+        <section class="summary-grid" aria-label="Resumen">
+          <article class="metric">
+            <span>DataCoins acumulados</span>
+            <strong id="totalCoins">0</strong>
+          </article>
+          <article class="metric">
+            <span>Progreso contractual</span>
+            <strong id="progressPercent">0%</strong>
+          </article>
+          <article class="metric">
+            <span>Nota sugerida</span>
+            <strong id="suggestedGrade">1</strong>
+          </article>
+          <article class="metric">
+            <span>Estado</span>
+            <strong id="studentStatus">Insuficiente</strong>
+          </article>
+        </section>
+
+        <section class="panel" id="teacherPanel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">ContratoDB · UTU Canelones</p>
+              <h2>Gestión docente</h2>
+            </div>
+            <button id="resetBtn" type="button">Limpiar pagos</button>
+          </div>
+
+          <div class="teacher-grid">
+            <section class="surface">
+              <h3>Equipos</h3>
+              <form id="teamForm" class="inline-form">
+                <label class="field">
+                  <span>Nombre del equipo</span>
+                  <input id="teamName" type="text" placeholder="Equipo Delta" required />
+                </label>
+                <label class="field color-field">
+                  <span>Color</span>
+                  <input id="teamColor" type="color" value="#0f766e" />
+                </label>
+                <button class="primary" type="submit">Crear equipo</button>
+              </form>
+              <div id="teamList" class="team-list"></div>
+            </section>
+
+            <section class="surface">
+              <h3>Estudiantes</h3>
+              <form id="studentForm" class="inline-form">
+                <label class="field">
+                  <span>Estudiante registrado</span>
+                  <select id="studentAccount"></select>
+                </label>
+                <label class="field">
+                  <span>Equipo</span>
+                  <select id="studentTeam"></select>
+                </label>
+                <button class="primary" type="submit">Agregar</button>
+              </form>
+              <div id="studentList" class="student-list"></div>
+            </section>
+          </div>
+
+          <section class="surface teacher-overview">
+            <div class="surface-heading">
+              <h3>Seguimiento por equipo</h3>
+              <label class="field compact">
+                <span>Equipo</span>
+                <select id="overviewTeam"></select>
+              </label>
+            </div>
+            <div id="teamOverview" class="overview-list"></div>
+          </section>
+
+          <div class="split-layout">
+            <section class="surface">
+              <h3>Entregas del contrato</h3>
+              <div id="deliveriesAdmin" class="delivery-list"></div>
+            </section>
+
+            <section class="surface">
+              <h3>Pagos y penalizaciones</h3>
+              <form id="paymentForm" class="form-grid">
+                <label class="field">
+                  <span>Estudiante</span>
+                  <select id="paymentStudent"></select>
+                </label>
+                <label class="field">
+                  <span>Entrega</span>
+                  <select id="paymentDelivery"></select>
+                </label>
+                <label class="field">
+                  <span>Pago obtenido</span>
+                  <input id="paymentCoins" type="number" min="0" step="1" />
+                </label>
+                <label class="field">
+                  <span>Penalización</span>
+                  <select id="paymentPenalty">
+                    <option value="0">Sin penalización</option>
+                    <option value="20">Fuera de fecha - hasta 20%</option>
+                    <option value="30">Entrega incompleta - hasta 30%</option>
+                    <option value="25">Sin justificación técnica - 25%</option>
+                    <option value="25">Inconsistencias graves - hasta 25%</option>
+                    <option value="40">No demuestra autoría - hasta 40%</option>
+                  </select>
+                </label>
+                <label class="field full">
+                  <span>Feedback</span>
+                  <textarea id="paymentFeedback" rows="4"></textarea>
+                </label>
+                <button class="primary full" type="submit">Guardar pago</button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel" id="studentPanel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">ContratoDB · Base de Datos</p>
+              <h2 id="studentPanelTitle">Mi contrato</h2>
+            </div>
+          </div>
+          <div id="studentDashboard" class="student-dashboard"></div>
+          <div id="studentDeliveries" class="student-timeline"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
