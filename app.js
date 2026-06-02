@@ -1,5 +1,20 @@
+<<<<<<< HEAD
 const SUPABASE_URL = "PEGAR_SUPABASE_URL";
 const SUPABASE_ANON_KEY = "PEGAR_SUPABASE_ANON_KEY";
+=======
+// Runtime-configurable Supabase keys: prefer providing these from a
+// non-committed file (see `config.example.js`). If not provided at
+// runtime, fall back to the embedded values (not recommended for
+// repos/public projects).
+const SUPABASE_URL = window.SUPABASE_URL || "https://wxjiwtjcbwpccrkzoddt.supabase.co";
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "sb_publishable_tfEph8LqUQh5yN598MnLcQ_busnjbSy";
+
+if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
+  console.warn(
+    'Using embedded Supabase keys. For production or public repos, move keys to a non-committed `config.js` and rotate the key if already leaked.'
+  );
+}
+>>>>>>> f0b16f0 (Add deploy workflow, config example, .gitignore and README)
 
 const isConfigured = SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 40;
 const db = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
