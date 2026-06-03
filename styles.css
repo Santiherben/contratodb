@@ -244,10 +244,22 @@ button:hover {
 .delivery-row,
 .student-row,
 .team-card,
-.student-card {
+.student-card,
+.empty-state {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
+}
+
+.empty-state {
+  background: #fff;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+
+.empty-state strong {
+  color: var(--ink);
 }
 
 .delivery-row {

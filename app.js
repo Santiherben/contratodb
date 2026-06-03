@@ -112,7 +112,7 @@ function riskFor(studentId) {
 }
 
 function selectedStudentId() {
-  if (currentProfile?.role === "teacher") return studentSelect.value || state.students[0]?.id;
+  if (currentProfile?.role === "teacher") return studentSelect.value || state.students[0]?.id || "";
   return currentProfile?.id;
 }
 
@@ -174,12 +174,13 @@ async function loadProfile() {
 
 function renderShell() {
   const isTeacher = currentProfile?.role === "teacher";
+  setupPanel.hidden = true;
   authPanel.hidden = true;
   appMain.hidden = false;
   logoutBtn.hidden = false;
   teacherPanel.hidden = !isTeacher;
-  studentPanel.hidden = false;
-  studentPickerWrap.hidden = !isTeacher;
+  studentPanel.hidden = isTeacher && state.students.length === 0;
+  studentPickerWrap.hidden = !isTeacher || state.students.length === 0;
   sessionBox.innerHTML = `
     <strong>${currentProfile.full_name}</strong>
     <span>${isTeacher ? "Docente" : "Estudiante"}</span>
@@ -187,27 +188,47 @@ function renderShell() {
 }
 
 function renderOptions() {
-  const studentOptions = state.students
-    .map((student) => {
-      const team = getTeam(student.teamId);
-      return `<option value="${student.id}">${student.name} - ${team.name}</option>`;
-    })
-    .join("");
+  const studentOptions = state.students.length
+    ? state.students
+        .map((student) => {
+          const team = getTeam(student.teamId);
+          return `<option value="${student.id}">${student.name} - ${team.name}</option>`;
+        })
+        .join("")
+    : '<option value="">Sin estudiantes registrados</option>';
+  const teamOptions = state.teams.length
+    ? state.teams.map((team) => `<option value="${team.id}">${team.name}</option>`).join("")
+    : '<option value="">Sin equipos creados</option>';
   studentSelect.innerHTML = studentOptions;
   paymentStudent.innerHTML = studentOptions;
   studentAccount.innerHTML = state.students
     .map((student) => `<option value="${student.id}">${student.name} · ${student.email}</option>`)
     .join("");
-  const teamOptions = state.teams.map((team) => `<option value="${team.id}">${team.name}</option>`).join("");
+  if (!state.students.length) {
+    studentAccount.innerHTML = '<option value="">No hay cuentas estudiante</option>';
+  }
   studentTeam.innerHTML = teamOptions;
   overviewTeam.innerHTML = teamOptions;
   paymentDelivery.innerHTML = state.deliveries
     .map((delivery) => `<option value="${delivery.id}">${delivery.title}</option>`)
     .join("");
+  studentSelect.disabled = state.students.length === 0;
+  paymentStudent.disabled = state.students.length === 0;
+  studentAccount.disabled = state.students.length === 0;
+  studentTeam.disabled = state.teams.length === 0;
+  overviewTeam.disabled = state.teams.length === 0;
+  paymentDelivery.disabled = state.deliveries.length === 0;
 }
 
 function renderSummary() {
   const studentId = selectedStudentId();
+  if (!studentId) {
+    document.querySelector("#totalCoins").textContent = "0";
+    document.querySelector("#progressPercent").textContent = "0%";
+    document.querySelector("#suggestedGrade").textContent = "-";
+    document.querySelector("#studentStatus").textContent = "Sin estudiante";
+    return;
+  }
   const coins = earnedCoins(studentId);
   const progress = progressFor(studentId);
   const grade = gradeFor(progress);
@@ -219,10 +240,11 @@ function renderSummary() {
 }
 
 function renderTeams() {
-  teamList.innerHTML = state.teams
-    .map((team) => {
-      const members = state.students.filter((student) => student.teamId === team.id).length;
-      return `
+  teamList.innerHTML = state.teams.length
+    ? state.teams
+        .map((team) => {
+          const members = state.students.filter((student) => student.teamId === team.id).length;
+          return `
         <article class="team-card" style="--team-color: ${team.color}">
           <div class="identity">
             <span class="swatch" aria-hidden="true"></span>
@@ -237,15 +259,20 @@ function renderTeams() {
           </label>
         </article>
       `;
-    })
-    .join("");
+        })
+        .join("")
+    : `<article class="empty-state">
+        <strong>No hay equipos creados</strong>
+        <span>Creá el primer equipo para poder asignar estudiantes.</span>
+      </article>`;
 }
 
 function renderStudents() {
-  studentList.innerHTML = state.students
-    .map((student) => {
-      const team = getTeam(student.teamId);
-      return `
+  studentList.innerHTML = state.students.length
+    ? state.students
+        .map((student) => {
+          const team = getTeam(student.teamId);
+          return `
         <article class="student-card" style="--team-color: ${team.color}">
           <div class="identity">
             <span class="swatch" aria-hidden="true"></span>
@@ -265,11 +292,23 @@ function renderStudents() {
           </label>
         </article>
       `;
-    })
-    .join("");
+        })
+        .join("")
+    : `<article class="empty-state">
+        <strong>No hay estudiantes registrados</strong>
+        <span>Cuando un estudiante cree su cuenta, aparecerá acá para asignarlo a un equipo.</span>
+      </article>`;
 }
 
 function renderTeamOverview() {
+  if (!state.teams.length) {
+    teamOverview.innerHTML = `<article class="empty-state">
+      <strong>Sin equipos para mostrar</strong>
+      <span>El seguimiento por equipo se activa cuando creás al menos un equipo.</span>
+    </article>`;
+    return;
+  }
+
   const teamId = overviewTeam.value || state.teams[0]?.id;
   const team = getTeam(teamId);
   const members = state.students.filter((student) => student.teamId === teamId);
@@ -346,6 +385,13 @@ function paymentBadge(payment) {
 
 function renderStudentPanel() {
   const studentId = selectedStudentId();
+  if (!studentId) {
+    document.querySelector("#studentPanelTitle").textContent = "Sin estudiante seleccionado";
+    studentDashboard.innerHTML = "";
+    studentDeliveries.innerHTML = "";
+    return;
+  }
+
   const student = state.students.find((item) => item.id === studentId) || {
     id: currentProfile.id,
     name: currentProfile.full_name,
@@ -447,6 +493,7 @@ function renderPanels() {
   renderShell();
   renderOptions();
   if (!paymentCoins.value && state.deliveries[0]) paymentCoins.value = state.deliveries[0].coins;
+  paymentForm.querySelector("button[type='submit']").disabled = state.students.length === 0 || state.deliveries.length === 0;
   renderSummary();
   renderTeams();
   renderStudents();
