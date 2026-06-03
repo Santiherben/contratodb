@@ -149,6 +149,7 @@ async function loadData() {
       name: profile.full_name,
       email: profile.email,
       teamId: profile.team_id,
+      contractAcceptedAt: profile.contract_accepted_at,
     }));
   state.deliveries = (deliveries || []).map((delivery) => ({
     id: delivery.id,
@@ -296,18 +297,21 @@ function renderStudents() {
             <span class="swatch" aria-hidden="true"></span>
             <div>
               <strong>${student.name}</strong>
-              <span>${student.email} · ${team.name}</span>
+              <span>${student.email} · ${team.name} · ${student.contractAcceptedAt ? "contrato aceptado" : "contrato pendiente"}</span>
             </div>
           </div>
-          <label class="field">
-            <span>Equipo</span>
-            <select data-student-team="${student.id}">
-              <option value="">Sin equipo</option>
-              ${state.teams
-                .map((item) => `<option value="${item.id}" ${item.id === student.teamId ? "selected" : ""}>${item.name}</option>`)
-                .join("")}
-            </select>
-          </label>
+          <div class="student-card-actions">
+            <label class="field">
+              <span>Equipo</span>
+              <select data-student-team="${student.id}">
+                <option value="">Sin equipo</option>
+                ${state.teams
+                  .map((item) => `<option value="${item.id}" ${item.id === student.teamId ? "selected" : ""}>${item.name}</option>`)
+                  .join("")}
+              </select>
+            </label>
+            <button type="button" data-reset-password="${student.email}">Enviar recuperación</button>
+          </div>
         </article>
       `;
         })
@@ -401,11 +405,18 @@ function paymentBadge(payment) {
   return '<span class="pill ok">Pago registrado</span>';
 }
 
-function renderContractDocument(student, team) {
+function renderContractDocument(student, team, contractAcceptedAt, requiresAcceptance) {
   studentContract.innerHTML = `
     <section class="contract-card" style="--team-color: ${team.color}">
-      <p class="eyebrow">Contrato de prestación académica</p>
-      <h3>Contratación para desarrollo de base de datos</h3>
+      <div class="contract-heading">
+        <div>
+          <p class="eyebrow">Contrato de prestación académica</p>
+          <h3>Contratación para desarrollo de base de datos</h3>
+        </div>
+        <span class="pill ${contractAcceptedAt ? "ok" : "warn"}">
+          ${contractAcceptedAt ? "Aceptado" : "Pendiente"}
+        </span>
+      </div>
       <p>
         Por la presente, <strong>Santiago Hernández</strong>, docente de Base de Datos en UTU Canelones,
         contrata a <strong>${student.name}</strong>${team.id ? `, integrante de <strong>${team.name}</strong>` : ""},
@@ -427,6 +438,11 @@ function renderContractDocument(student, team) {
         <span>Modalidad de pago: DataCoins por entrega</span>
         <span>Destino: calificación de Base de Datos</span>
       </div>
+      ${
+        requiresAcceptance
+          ? `<button class="primary contract-accept" type="button" data-accept-contract="true">Aceptar contrato y continuar</button>`
+          : ""
+      }
     </section>
   `;
 }
@@ -455,9 +471,21 @@ function renderStudentPanel() {
   const completed = completedDeliveries(studentId);
   const upcoming = nextDelivery(studentId);
   const risk = riskFor(studentId);
+  const contractAcceptedAt = student.contractAcceptedAt || currentProfile.contract_accepted_at || "";
+  const requiresAcceptance = currentProfile?.role === "student" && student.id === currentProfile.id && !contractAcceptedAt;
 
   document.querySelector("#studentPanelTitle").textContent = `${student.name} - ${team.name}`;
-  renderContractDocument(student, team);
+  renderContractDocument(student, team, contractAcceptedAt, requiresAcceptance);
+  if (requiresAcceptance) {
+    studentDashboard.innerHTML = "";
+    studentDeliveries.innerHTML = `
+      <article class="empty-state">
+        <strong>Aceptá el contrato para continuar</strong>
+        <span>Después de aceptar vas a poder ver entregas, DataCoins, feedback y progreso.</span>
+      </article>
+    `;
+    return;
+  }
   studentDashboard.innerHTML = `
     <section class="student-hero" style="--team-color: ${team.color}">
       <h3>${student.name}</h3>
@@ -614,6 +642,17 @@ studentList.addEventListener("change", async (event) => {
   await refresh();
 });
 
+studentList.addEventListener("click", async (event) => {
+  const email = event.target.dataset.resetPassword;
+  if (!email) return;
+
+  event.target.disabled = true;
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}${window.location.pathname}`,
+  });
+  event.target.textContent = error ? "No se pudo enviar" : "Recuperación enviada";
+});
+
 teamList.addEventListener("change", async (event) => {
   const colorTeamId = event.target.dataset.teamColor;
   const nameTeamId = event.target.dataset.teamName;
@@ -677,6 +716,21 @@ paymentForm.addEventListener("submit", async (event) => {
 
 studentSelect.addEventListener("change", renderPanels);
 overviewTeam.addEventListener("change", renderTeamOverview);
+
+studentContract.addEventListener("click", async (event) => {
+  if (!event.target.dataset.acceptContract) return;
+
+  event.target.disabled = true;
+  const { data, error } = await db.rpc("accept_contract");
+  if (error) {
+    event.target.disabled = false;
+    event.target.textContent = "No se pudo aceptar";
+    return;
+  }
+
+  currentProfile.contract_accepted_at = data || new Date().toISOString();
+  await refresh();
+});
 
 resetBtn.addEventListener("click", async () => {
   await db.from("payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");

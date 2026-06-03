@@ -424,6 +424,13 @@ textarea {
   padding: 18px;
 }
 
+.contract-heading {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
 .contract-card h3 {
   margin: 0;
 }
@@ -446,6 +453,10 @@ textarea {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.contract-accept {
+  justify-self: start;
 }
 
 .student-hero,
@@ -602,6 +613,13 @@ textarea {
   border-left: 8px solid var(--team-color, var(--brand));
 }
 
+.student-card-actions {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+}
+
 .team-card strong,
 .student-card strong {
   display: block;
@@ -673,9 +691,15 @@ textarea {
 
   .student-row header,
   .team-card,
-  .student-card {
+  .student-card,
+  .contract-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .student-card-actions,
+  .contract-terms {
+    grid-template-columns: 1fr;
   }
 
   .pill {
