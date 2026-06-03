@@ -213,7 +213,7 @@ button:hover {
 .split-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   margin-top: 16px;
 }
 
@@ -225,6 +225,12 @@ button:hover {
 
 .surface {
   padding: 16px;
+}
+
+.surface-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 8px 0 0;
 }
 
 .surface-heading {
@@ -269,7 +275,7 @@ button:hover {
 .delivery-row {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(190px, 1fr) repeat(3, minmax(120px, 0.45fr));
+  grid-template-columns: minmax(260px, 1fr) minmax(140px, 0.42fr) minmax(120px, 0.35fr) minmax(150px, 0.42fr);
   align-items: end;
 }
 
@@ -314,6 +320,10 @@ textarea {
   padding: 8px 10px;
 }
 
+select[multiple] {
+  min-height: 118px;
+}
+
 input[type="color"] {
   padding: 4px;
 }
@@ -339,7 +349,7 @@ textarea {
 .form-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 14px;
 }
 
