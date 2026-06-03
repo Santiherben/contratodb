@@ -34,8 +34,10 @@ const deliveriesAdmin = document.querySelector("#deliveriesAdmin");
 const studentDeliveries = document.querySelector("#studentDeliveries");
 const studentDashboard = document.querySelector("#studentDashboard");
 const paymentForm = document.querySelector("#paymentForm");
-const paymentStudent = document.querySelector("#paymentStudent");
 const paymentDelivery = document.querySelector("#paymentDelivery");
+const paymentTeam = document.querySelector("#paymentTeam");
+const paymentScope = document.querySelector("#paymentScope");
+const paymentMembers = document.querySelector("#paymentMembers");
 const paymentCoins = document.querySelector("#paymentCoins");
 const paymentPenalty = document.querySelector("#paymentPenalty");
 const paymentFeedback = document.querySelector("#paymentFeedback");
@@ -200,7 +202,6 @@ function renderOptions() {
     ? state.teams.map((team) => `<option value="${team.id}">${team.name}</option>`).join("")
     : '<option value="">Sin equipos creados</option>';
   studentSelect.innerHTML = studentOptions;
-  paymentStudent.innerHTML = studentOptions;
   studentAccount.innerHTML = state.students
     .map((student) => `<option value="${student.id}">${student.name} · ${student.email}</option>`)
     .join("");
@@ -209,15 +210,31 @@ function renderOptions() {
   }
   studentTeam.innerHTML = teamOptions;
   overviewTeam.innerHTML = teamOptions;
+  paymentTeam.innerHTML = teamOptions;
   paymentDelivery.innerHTML = state.deliveries
     .map((delivery) => `<option value="${delivery.id}">${delivery.title}</option>`)
     .join("");
   studentSelect.disabled = state.students.length === 0;
-  paymentStudent.disabled = state.students.length === 0;
   studentAccount.disabled = state.students.length === 0;
   studentTeam.disabled = state.teams.length === 0;
   overviewTeam.disabled = state.teams.length === 0;
+  paymentTeam.disabled = state.teams.length === 0;
+  paymentScope.disabled = state.students.length === 0;
   paymentDelivery.disabled = state.deliveries.length === 0;
+  studentForm.querySelector("button[type='submit']").disabled = state.students.length === 0 || state.teams.length === 0;
+  renderPaymentMembers();
+}
+
+function paymentTeamMembers() {
+  return state.students.filter((student) => student.teamId === paymentTeam.value);
+}
+
+function renderPaymentMembers() {
+  const members = paymentTeamMembers();
+  paymentMembers.innerHTML = members.length
+    ? members.map((student) => `<option value="${student.id}">${student.name}</option>`).join("")
+    : '<option value="">Este equipo no tiene estudiantes</option>';
+  paymentMembers.disabled = paymentScope.value !== "members" || members.length === 0;
 }
 
 function renderSummary() {
@@ -493,7 +510,8 @@ function renderPanels() {
   renderShell();
   renderOptions();
   if (!paymentCoins.value && state.deliveries[0]) paymentCoins.value = state.deliveries[0].coins;
-  paymentForm.querySelector("button[type='submit']").disabled = state.students.length === 0 || state.deliveries.length === 0;
+  paymentForm.querySelector("button[type='submit']").disabled =
+    state.students.length === 0 || state.teams.length === 0 || state.deliveries.length === 0;
   renderSummary();
   renderTeams();
   renderStudents();
@@ -594,22 +612,33 @@ paymentDelivery.addEventListener("change", () => {
   paymentCoins.value = delivery?.coins || 0;
 });
 
+paymentTeam.addEventListener("change", renderPaymentMembers);
+paymentScope.addEventListener("change", renderPaymentMembers);
+
 paymentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const members = paymentTeamMembers();
+  const selectedIds =
+    paymentScope.value === "team"
+      ? members.map((student) => student.id)
+      : Array.from(paymentMembers.selectedOptions).map((option) => option.value).filter(Boolean);
+
+  if (!selectedIds.length || !paymentDelivery.value) return;
+
   await db.from("payments").upsert(
-    {
-      student_id: paymentStudent.value,
+    selectedIds.map((studentId) => ({
+      student_id: studentId,
       delivery_id: paymentDelivery.value,
       coins: Number(paymentCoins.value || 0),
       penalty: Number(paymentPenalty.value || 0),
       feedback: paymentFeedback.value.trim(),
       updated_at: new Date().toISOString(),
-    },
+    })),
     { onConflict: "student_id,delivery_id" }
   );
 
   paymentFeedback.value = "";
-  studentSelect.value = paymentStudent.value;
+  studentSelect.value = selectedIds[0];
   await refresh();
 });
 

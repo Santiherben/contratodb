@@ -105,6 +105,7 @@
 
             <section class="surface">
               <h3>Estudiantes</h3>
+              <p class="surface-note">Los estudiantes se crean desde la pantalla de acceso. Cuando se registran, aparecen acá para asignarlos a un equipo.</p>
               <form id="studentForm" class="inline-form">
                 <label class="field">
                   <span>Estudiante registrado</span>
@@ -138,15 +139,26 @@
             </section>
 
             <section class="surface">
-              <h3>Pagos y penalizaciones</h3>
+              <h3>Pagos por entrega</h3>
               <form id="paymentForm" class="form-grid">
-                <label class="field">
-                  <span>Estudiante</span>
-                  <select id="paymentStudent"></select>
-                </label>
                 <label class="field">
                   <span>Entrega</span>
                   <select id="paymentDelivery"></select>
+                </label>
+                <label class="field">
+                  <span>Equipo</span>
+                  <select id="paymentTeam"></select>
+                </label>
+                <label class="field">
+                  <span>Aplicar a</span>
+                  <select id="paymentScope">
+                    <option value="team">Todo el equipo</option>
+                    <option value="members">Integrantes seleccionados</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Integrantes</span>
+                  <select id="paymentMembers" multiple size="5"></select>
                 </label>
                 <label class="field">
                   <span>Pago obtenido</span>
