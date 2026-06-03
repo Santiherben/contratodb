@@ -21,8 +21,12 @@ create table if not exists public.profiles (
   full_name text not null,
   role text not null default 'student' check (role in ('teacher', 'student')),
   team_id uuid references public.teams(id) on delete set null,
+  contract_accepted_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles
+add column if not exists contract_accepted_at timestamptz;
 
 create table if not exists public.deliveries (
   id uuid primary key default gen_random_uuid(),
@@ -145,6 +149,28 @@ as $$
     where id = auth.uid() and role = 'teacher'
   );
 $$;
+
+create or replace function public.accept_contract()
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  accepted_at timestamptz;
+begin
+  accepted_at := now();
+
+  update public.profiles
+  set contract_accepted_at = accepted_at
+  where id = auth.uid()
+    and role = 'student';
+
+  return accepted_at;
+end;
+$$;
+
+grant execute on function public.accept_contract() to authenticated;
 
 alter table public.teams enable row level security;
 alter table public.profiles enable row level security;
