@@ -35,6 +35,17 @@ create table if not exists public.deliveries (
   created_at timestamptz not null default now()
 );
 
+create temp table if not exists delivery_dupe_map as
+select duplicate_id, keep_id
+from (
+  select
+    id as duplicate_id,
+    first_value(id) over (partition by sort_order order by created_at, id) as keep_id,
+    row_number() over (partition by sort_order order by created_at, id) as row_number
+  from public.deliveries
+) ranked
+where row_number > 1;
+
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.profiles(id) on delete cascade,
@@ -46,6 +57,40 @@ create table if not exists public.payments (
   updated_at timestamptz not null default now(),
   unique (student_id, delivery_id)
 );
+
+insert into public.payments (student_id, delivery_id, coins, penalty, feedback, created_at, updated_at)
+select
+  p.student_id,
+  d.keep_id,
+  p.coins,
+  p.penalty,
+  p.feedback,
+  p.created_at,
+  p.updated_at
+from public.payments p
+join delivery_dupe_map d on d.duplicate_id = p.delivery_id
+on conflict (student_id, delivery_id) do update set
+  coins = greatest(public.payments.coins, excluded.coins),
+  penalty = greatest(public.payments.penalty, excluded.penalty),
+  feedback = case
+    when public.payments.feedback = '' then excluded.feedback
+    when excluded.feedback = '' then public.payments.feedback
+    else public.payments.feedback || E'\n' || excluded.feedback
+  end,
+  updated_at = now();
+
+delete from public.payments p
+using delivery_dupe_map d
+where p.delivery_id = d.duplicate_id;
+
+delete from public.deliveries d
+using delivery_dupe_map m
+where d.id = m.duplicate_id;
+
+drop table if exists delivery_dupe_map;
+
+create unique index if not exists deliveries_sort_order_key
+on public.deliveries (sort_order);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -140,4 +185,6 @@ values
   ('Entrega 6 - Integración y revisión técnica', 'Correcciones, consistencia y documentación parcial.', '2026-09-18', 150, 'Programada', 6),
   ('Entrega 7 - Preentrega y defensa técnica', 'Revisión integral, defensa individual, ajustes y autoría.', '2026-10-16', 200, 'Programada', 7),
   ('Entrega final', 'Documentación final, MER, SQL, consultas, datos y defensa.', '2026-10-30', 250, 'Programada', 8)
-on conflict do nothing;
+on conflict (sort_order) do update set
+  title = excluded.title,
+  details = excluded.details;
