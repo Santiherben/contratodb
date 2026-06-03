@@ -33,6 +33,7 @@ const studentPanel = document.querySelector("#studentPanel");
 const deliveriesAdmin = document.querySelector("#deliveriesAdmin");
 const studentDeliveries = document.querySelector("#studentDeliveries");
 const studentDashboard = document.querySelector("#studentDashboard");
+const studentContract = document.querySelector("#studentContract");
 const paymentForm = document.querySelector("#paymentForm");
 const paymentDelivery = document.querySelector("#paymentDelivery");
 const paymentTeam = document.querySelector("#paymentTeam");
@@ -400,11 +401,42 @@ function paymentBadge(payment) {
   return '<span class="pill ok">Pago registrado</span>';
 }
 
+function renderContractDocument(student, team) {
+  studentContract.innerHTML = `
+    <section class="contract-card" style="--team-color: ${team.color}">
+      <p class="eyebrow">Contrato de prestación académica</p>
+      <h3>Contratación para desarrollo de base de datos</h3>
+      <p>
+        Por la presente, <strong>Santiago Hernández</strong>, docente de Base de Datos en UTU Canelones,
+        contrata a <strong>${student.name}</strong>${team.id ? `, integrante de <strong>${team.name}</strong>` : ""},
+        para participar en el desarrollo, documentación y defensa técnica de un proyecto de base de datos.
+      </p>
+      <p>
+        La remuneración será abonada en <strong>DataCoins</strong> según las entregas del contrato.
+        Los DataCoins acumulados serán canjeados por calificación de acuerdo con el progreso alcanzado,
+        la calidad técnica, la consistencia de las evidencias y la defensa del trabajo realizado.
+      </p>
+      <p>
+        Los incumplimientos, entregas incompletas, demoras, falta de justificación técnica o dudas sobre
+        la autoría podrán generar penalizaciones. Dichas penalizaciones serán consideradas en sentido
+        negativo al momento de convertir los DataCoins en calificación.
+      </p>
+      <div class="contract-terms">
+        <span>Contratante: Santiago Hernández</span>
+        <span>Contratado/a: ${student.name}</span>
+        <span>Modalidad de pago: DataCoins por entrega</span>
+        <span>Destino: calificación de Base de Datos</span>
+      </div>
+    </section>
+  `;
+}
+
 function renderStudentPanel() {
   const studentId = selectedStudentId();
   if (!studentId) {
     document.querySelector("#studentPanelTitle").textContent = "Sin estudiante seleccionado";
     studentDashboard.innerHTML = "";
+    studentContract.innerHTML = "";
     studentDeliveries.innerHTML = "";
     return;
   }
@@ -425,6 +457,7 @@ function renderStudentPanel() {
   const risk = riskFor(studentId);
 
   document.querySelector("#studentPanelTitle").textContent = `${student.name} - ${team.name}`;
+  renderContractDocument(student, team);
   studentDashboard.innerHTML = `
     <section class="student-hero" style="--team-color: ${team.color}">
       <h3>${student.name}</h3>
