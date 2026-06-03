@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>ContratoDB - Contratación académica</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.55;">
+    <h2>Contrato de prestación académica</h2>
+    <p>Hola {{ student_name }},</p>
+    <p>
+      Usted ha sido contratado/a por <strong>Santiago Hernández</strong>, docente de Base de Datos
+      en UTU Canelones, para el desarrollo, documentación y defensa técnica de su proyecto de base
+      de datos.
+    </p>
+    <p>
+      Su contratación se realizará bajo la modalidad de <strong>DataCoins</strong>. Los DataCoins
+      serán adjudicados de acuerdo con las entregas del contrato, la calidad técnica del trabajo,
+      la consistencia de las evidencias y la defensa realizada.
+    </p>
+    <p>
+      Los DataCoins acumulados serán canjeados por calificación. Las penalizaciones por
+      incumplimiento, entregas incompletas, demoras, falta de justificación técnica o dudas sobre
+      autoría también serán consideradas al convertir los DataCoins en nota, en sentido negativo.
+    </p>
+    <p>
+      Equipo asignado: <strong>{{ team_name }}</strong><br />
+      Contratante: <strong>Santiago Hernández</strong><br />
+      Plataforma: <strong>ContratoDB</strong>
+    </p>
+    <p>
+      Para consultar su contrato, entregas, pagos y feedback, ingrese a ContratoDB:
+      <a href="{{ app_url }}">{{ app_url }}</a>
+    </p>
+    <p>Atentamente,<br />Santiago Hernández</p>
+  </body>
+</html>

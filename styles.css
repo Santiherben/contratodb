@@ -410,6 +410,44 @@ textarea {
   margin-bottom: 16px;
 }
 
+.contract-document {
+  margin: 0 0 16px;
+}
+
+.contract-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--team-color, var(--brand));
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.contract-card h3 {
+  margin: 0;
+}
+
+.contract-card p {
+  color: #334155;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.contract-terms {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 12px;
+}
+
+.contract-terms span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .student-hero,
 .next-delivery {
   border: 1px solid var(--line);
