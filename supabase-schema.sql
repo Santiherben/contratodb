@@ -35,17 +35,6 @@ create table if not exists public.deliveries (
   created_at timestamptz not null default now()
 );
 
-create temp table if not exists delivery_dupe_map as
-select duplicate_id, keep_id
-from (
-  select
-    id as duplicate_id,
-    first_value(id) over (partition by sort_order order by created_at, id) as keep_id,
-    row_number() over (partition by sort_order order by created_at, id) as row_number
-  from public.deliveries
-) ranked
-where row_number > 1;
-
 create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.profiles(id) on delete cascade,
@@ -58,6 +47,17 @@ create table if not exists public.payments (
   unique (student_id, delivery_id)
 );
 
+with delivery_dupe_map as (
+  select duplicate_id, keep_id
+  from (
+    select
+      id as duplicate_id,
+      first_value(id) over (partition by sort_order order by created_at, id) as keep_id,
+      row_number() over (partition by sort_order order by created_at, id) as row_number
+    from public.deliveries
+  ) ranked
+  where row_number > 1
+)
 insert into public.payments (student_id, delivery_id, coins, penalty, feedback, created_at, updated_at)
 select
   p.student_id,
@@ -79,15 +79,35 @@ on conflict (student_id, delivery_id) do update set
   end,
   updated_at = now();
 
+with delivery_dupe_map as (
+  select duplicate_id, keep_id
+  from (
+    select
+      id as duplicate_id,
+      first_value(id) over (partition by sort_order order by created_at, id) as keep_id,
+      row_number() over (partition by sort_order order by created_at, id) as row_number
+    from public.deliveries
+  ) ranked
+  where row_number > 1
+)
 delete from public.payments p
 using delivery_dupe_map d
 where p.delivery_id = d.duplicate_id;
 
+with delivery_dupe_map as (
+  select duplicate_id, keep_id
+  from (
+    select
+      id as duplicate_id,
+      first_value(id) over (partition by sort_order order by created_at, id) as keep_id,
+      row_number() over (partition by sort_order order by created_at, id) as row_number
+    from public.deliveries
+  ) ranked
+  where row_number > 1
+)
 delete from public.deliveries d
 using delivery_dupe_map m
 where d.id = m.duplicate_id;
-
-drop table if exists delivery_dupe_map;
 
 create unique index if not exists deliveries_sort_order_key
 on public.deliveries (sort_order);
