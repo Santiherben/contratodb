@@ -2,12 +2,14 @@
 // from `config.example.js` and define these globals there.
 const SUPABASE_URL = window.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
+const APP_URL = window.APP_URL || "https://santiherben.github.io/contratodb/";
 
 const isConfigured = SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 40;
 const db = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 let session = null;
 let currentProfile = null;
+let isRecoveringPassword = false;
 let state = {
   teams: [],
   students: [],
@@ -17,6 +19,11 @@ let state = {
 
 const setupPanel = document.querySelector("#setupPanel");
 const authPanel = document.querySelector("#authPanel");
+const passwordResetPanel = document.querySelector("#passwordResetPanel");
+const passwordResetForm = document.querySelector("#passwordResetForm");
+const passwordResetMessage = document.querySelector("#passwordResetMessage");
+const newPassword = document.querySelector("#newPassword");
+const newPasswordConfirm = document.querySelector("#newPasswordConfirm");
 const appMain = document.querySelector("#appMain");
 const authForm = document.querySelector("#authForm");
 const authEmail = document.querySelector("#authEmail");
@@ -56,6 +63,21 @@ const teamOverview = document.querySelector("#teamOverview");
 
 function setMessage(message) {
   authMessage.textContent = message || "";
+}
+
+function isPasswordRecoveryLink() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return params.get("type") === "recovery" || window.location.search.includes("type=recovery");
+}
+
+function showPasswordResetPanel() {
+  setupPanel.hidden = true;
+  authPanel.hidden = true;
+  passwordResetPanel.hidden = false;
+  appMain.hidden = true;
+  logoutBtn.hidden = true;
+  studentPickerWrap.hidden = true;
+  sessionBox.textContent = "";
 }
 
 function maxCoins() {
@@ -180,6 +202,7 @@ function renderShell() {
   const isTeacher = currentProfile?.role === "teacher";
   setupPanel.hidden = true;
   authPanel.hidden = true;
+  passwordResetPanel.hidden = true;
   appMain.hidden = false;
   logoutBtn.hidden = false;
   teacherPanel.hidden = !isTeacher;
@@ -648,9 +671,30 @@ studentList.addEventListener("click", async (event) => {
 
   event.target.disabled = true;
   const { error } = await db.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}${window.location.pathname}`,
+    redirectTo: APP_URL,
   });
   event.target.textContent = error ? "No se pudo enviar" : "Recuperación enviada";
+});
+
+passwordResetForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  passwordResetMessage.textContent = "";
+
+  if (newPassword.value !== newPasswordConfirm.value) {
+    passwordResetMessage.textContent = "Las contraseñas no coinciden.";
+    return;
+  }
+
+  const { error } = await db.auth.updateUser({ password: newPassword.value });
+  if (error) {
+    passwordResetMessage.textContent = error.message;
+    return;
+  }
+
+  passwordResetMessage.textContent = "Contraseña actualizada. Redirigiendo...";
+  window.history.replaceState({}, document.title, window.location.pathname);
+  await db.auth.signOut();
+  window.location.href = APP_URL;
 });
 
 teamList.addEventListener("change", async (event) => {
@@ -741,10 +785,16 @@ async function boot() {
   if (!isConfigured) {
     setupPanel.hidden = false;
     authPanel.hidden = true;
+    passwordResetPanel.hidden = true;
     appMain.hidden = true;
     logoutBtn.hidden = true;
     studentPickerWrap.hidden = true;
     return;
+  }
+
+  isRecoveringPassword = isPasswordRecoveryLink();
+  if (isRecoveringPassword) {
+    showPasswordResetPanel();
   }
 
   const { data } = await db.auth.getSession();
@@ -752,9 +802,15 @@ async function boot() {
 
   db.auth.onAuthStateChange(async (_event, newSession) => {
     session = newSession;
+    if (isRecoveringPassword) {
+      showPasswordResetPanel();
+      return;
+    }
+
     if (!session) {
       currentProfile = null;
       authPanel.hidden = false;
+      passwordResetPanel.hidden = true;
       appMain.hidden = true;
       logoutBtn.hidden = true;
       studentPickerWrap.hidden = true;
@@ -770,8 +826,11 @@ async function boot() {
     }
   });
 
+  if (isRecoveringPassword) return;
+
   if (!session) {
     authPanel.hidden = false;
+    passwordResetPanel.hidden = true;
     appMain.hidden = true;
     logoutBtn.hidden = true;
     studentPickerWrap.hidden = true;
