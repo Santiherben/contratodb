@@ -57,6 +57,26 @@
         <p id="authMessage" class="message"></p>
       </section>
 
+      <section class="auth-panel" id="passwordResetPanel" hidden>
+        <div>
+          <p class="eyebrow">Recuperación</p>
+          <h2>Crear nueva contraseña</h2>
+          <p>Ingresá una contraseña nueva para volver a ContratoDB.</p>
+        </div>
+        <form id="passwordResetForm" class="auth-form">
+          <label class="field">
+            <span>Nueva contraseña</span>
+            <input id="newPassword" type="password" autocomplete="new-password" required minlength="6" />
+          </label>
+          <label class="field">
+            <span>Repetir contraseña</span>
+            <input id="newPasswordConfirm" type="password" autocomplete="new-password" required minlength="6" />
+          </label>
+          <button class="primary" type="submit">Guardar contraseña</button>
+        </form>
+        <p id="passwordResetMessage" class="message"></p>
+      </section>
+
       <main id="appMain" hidden>
         <section class="summary-grid" aria-label="Resumen">
           <article class="metric">
