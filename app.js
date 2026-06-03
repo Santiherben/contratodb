@@ -58,11 +58,24 @@ const studentForm = document.querySelector("#studentForm");
 const studentAccount = document.querySelector("#studentAccount");
 const studentTeam = document.querySelector("#studentTeam");
 const studentList = document.querySelector("#studentList");
+const teacherMessage = document.querySelector("#teacherMessage");
 const overviewTeam = document.querySelector("#overviewTeam");
 const teamOverview = document.querySelector("#teamOverview");
 
 function setMessage(message) {
   authMessage.textContent = message || "";
+}
+
+function setTeacherMessage(message) {
+  teacherMessage.textContent = message || "";
+}
+
+function shortError(error) {
+  if (!error) return "";
+  const message = error.message || String(error);
+  if (/redirect|url|site/i.test(message)) return "Revisá URL Configuration en Supabase.";
+  if (/rate|limit/i.test(message)) return "Límite de emails alcanzado. Probá más tarde.";
+  return message;
 }
 
 function isPasswordRecoveryLink() {
@@ -666,14 +679,36 @@ studentList.addEventListener("change", async (event) => {
 });
 
 studentList.addEventListener("click", async (event) => {
-  const email = event.target.dataset.resetPassword;
+  const button = event.target.closest("[data-reset-password]");
+  const email = button?.dataset.resetPassword;
   if (!email) return;
 
-  event.target.disabled = true;
-  const { error } = await db.auth.resetPasswordForEmail(email, {
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Enviando...";
+  button.title = "";
+
+  let { error } = await db.auth.resetPasswordForEmail(email, {
     redirectTo: APP_URL,
   });
-  event.target.textContent = error ? "No se pudo enviar" : "Recuperación enviada";
+
+  if (error && /redirect|url|site/i.test(error.message || "")) {
+    ({ error } = await db.auth.resetPasswordForEmail(email));
+  }
+
+  if (error) {
+    button.disabled = false;
+    button.textContent = "No se pudo enviar";
+    button.title = error.message || String(error);
+    setTeacherMessage(shortError(error));
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 4500);
+    return;
+  }
+
+  button.textContent = "Recuperación enviada";
+  setTeacherMessage(`Se envió un mail de recuperación a ${email}.`);
 });
 
 passwordResetForm.addEventListener("submit", async (event) => {
