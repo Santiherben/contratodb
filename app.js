@@ -348,6 +348,7 @@ function renderStudents() {
               </select>
             </label>
             <button type="button" data-reset-password="${student.email}">Enviar recuperación</button>
+            <button class="danger" type="button" data-delete-student="${student.id}">Eliminar alumno</button>
           </div>
         </article>
       `;
@@ -680,14 +681,43 @@ studentList.addEventListener("change", async (event) => {
 });
 
 studentList.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-reset-password]");
-  const email = button?.dataset.resetPassword;
+  const deleteButton = event.target.closest("[data-delete-student]");
+  if (deleteButton) {
+    const studentId = deleteButton.dataset.deleteStudent;
+    const student = state.students.find((item) => item.id === studentId);
+    if (!student) return;
+
+    const paymentCount = Object.keys(state.payments[studentId] || {}).length;
+    const paymentText = paymentCount
+      ? ` También se eliminarán ${paymentCount} pago${paymentCount === 1 ? "" : "s"} registrado${paymentCount === 1 ? "" : "s"}.`
+      : "";
+    const confirmed = window.confirm(`¿Eliminar al alumno "${student.name}"? Esta acción no se puede deshacer.${paymentText}`);
+    if (!confirmed) return;
+
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Eliminando...";
+
+    const { error } = await db.rpc("delete_student", { target_student_id: studentId });
+    if (error) {
+      deleteButton.disabled = false;
+      deleteButton.textContent = "Eliminar alumno";
+      setTeacherMessage(error.message);
+      return;
+    }
+
+    setTeacherMessage(`Alumno "${student.name}" eliminado.`);
+    await refresh();
+    return;
+  }
+
+  const resetButton = event.target.closest("[data-reset-password]");
+  const email = resetButton?.dataset.resetPassword;
   if (!email) return;
 
-  const originalText = button.textContent;
-  button.disabled = true;
-  button.textContent = "Enviando...";
-  button.title = "";
+  const originalText = resetButton.textContent;
+  resetButton.disabled = true;
+  resetButton.textContent = "Enviando...";
+  resetButton.title = "";
 
   let { error } = await db.auth.resetPasswordForEmail(email, {
     redirectTo: APP_URL,
@@ -698,17 +728,17 @@ studentList.addEventListener("click", async (event) => {
   }
 
   if (error) {
-    button.disabled = false;
-    button.textContent = "No se pudo enviar";
-    button.title = error.message || String(error);
+    resetButton.disabled = false;
+    resetButton.textContent = "No se pudo enviar";
+    resetButton.title = error.message || String(error);
     setTeacherMessage(shortError(error));
     setTimeout(() => {
-      button.textContent = originalText;
+      resetButton.textContent = originalText;
     }, 4500);
     return;
   }
 
-  button.textContent = "Recuperación enviada";
+  resetButton.textContent = "Recuperación enviada";
   setTeacherMessage(`Se envió un mail de recuperación a ${email}.`);
 });
 
