@@ -51,6 +51,17 @@ button:hover {
   border-color: var(--brand);
 }
 
+.danger {
+  border-color: #fecaca;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.danger:hover {
+  background: #fee2e2;
+  border-color: var(--danger);
+}
+
 .primary {
   background: var(--brand);
   border-color: var(--brand);

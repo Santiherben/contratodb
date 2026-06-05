@@ -312,6 +312,7 @@ function renderTeams() {
             <span>Color</span>
             <input data-team-color="${team.id}" type="color" value="${team.color}" />
           </label>
+          <button class="danger" type="button" data-delete-team="${team.id}">Eliminar grupo</button>
         </article>
       `;
         })
@@ -742,6 +743,31 @@ teamList.addEventListener("change", async (event) => {
   if (colorTeamId) patch.color = event.target.value;
   if (nameTeamId && event.target.value.trim()) patch.name = event.target.value.trim();
   await db.from("teams").update(patch).eq("id", teamId);
+  await refresh();
+});
+
+teamList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-delete-team]");
+  const teamId = button?.dataset.deleteTeam;
+  if (!teamId) return;
+
+  const team = state.teams.find((item) => item.id === teamId);
+  const members = state.students.filter((student) => student.teamId === teamId).length;
+  const memberText = members === 1 ? "1 estudiante quedará sin equipo" : `${members} estudiantes quedarán sin equipo`;
+  const confirmed = window.confirm(`¿Eliminar el grupo "${team?.name || "seleccionado"}"? ${memberText}.`);
+  if (!confirmed) return;
+
+  button.disabled = true;
+  button.textContent = "Eliminando...";
+  const { error } = await db.from("teams").delete().eq("id", teamId);
+  if (error) {
+    button.disabled = false;
+    button.textContent = "Eliminar grupo";
+    setTeacherMessage(error.message);
+    return;
+  }
+
+  setTeacherMessage(`Grupo "${team?.name || "seleccionado"}" eliminado.`);
   await refresh();
 });
 
